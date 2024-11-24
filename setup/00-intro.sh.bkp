@@ -136,7 +136,29 @@ spec:
       name: gcp-creds
       key: creds" | kubectl apply --filename -
 
-elif [[ "$HYPERSCALER" == "azure" ]]; then
+elif [[ "$HYPERSCALER" == "aws" ]]; then
+
+    AWS_ACCESS_KEY_ID=$(gum input --placeholder "AWS Access Key ID" --value "$AWS_ACCESS_KEY_ID")
+    echo "export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
+    
+    AWS_SECRET_ACCESS_KEY=$(gum input --placeholder "AWS Secret Access Key" --value "$AWS_SECRET_ACCESS_KEY" --password)
+    echo "export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env
+
+    AWS_ACCOUNT_ID=$(gum input --placeholder "AWS Account ID" --value "$AWS_ACCOUNT_ID")
+    echo "export AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> .env
+
+    echo "[default]
+aws_access_key_id = $AWS_ACCESS_KEY_ID
+aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
+" >aws-creds.conf
+
+    kubectl --namespace crossplane-system \
+        create secret generic aws-creds \
+        --from-file creds=./aws-creds.conf
+
+    kubectl apply --filename providers/aws-config.yaml
+
+else
 
     AZURE_TENANT_ID=$(gum input --placeholder "Azure Tenant ID" --value "$AZURE_TENANT_ID")
 
@@ -208,28 +230,6 @@ spec:
       namespace: a-team
     kubernetesProviderConfigName: cluster01" \
     | tee examples/azure-intro.yaml
-
-else
-
-    AWS_ACCESS_KEY_ID=$(gum input --placeholder "AWS Access Key ID" --value "$AWS_ACCESS_KEY_ID")
-    echo "export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
-    
-    AWS_SECRET_ACCESS_KEY=$(gum input --placeholder "AWS Secret Access Key" --value "$AWS_SECRET_ACCESS_KEY" --password)
-    echo "export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env
-
-    AWS_ACCOUNT_ID=$(gum input --placeholder "AWS Account ID" --value "$AWS_ACCOUNT_ID")
-    echo "export AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> .env
-
-    echo "[default]
-aws_access_key_id = $AWS_ACCESS_KEY_ID
-aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
-" >aws-creds.conf
-
-    kubectl --namespace crossplane-system \
-        create secret generic aws-creds \
-        --from-file creds=./aws-creds.conf
-
-    kubectl apply --filename providers/aws-config.yaml
 
 fi
 
